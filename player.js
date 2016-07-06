@@ -21,8 +21,70 @@ define(['jquery', 'jquery.slimscroll', 'basic'], function($, sl, basicJs) {
         this.listWindowCloseBtn = $('.list-window-close');
 
         this.processLine = $('.process-line');
+        this.volumeCtrl=$('.volume-ctrl');
+        this.volumeCirle=$('.volume-circle');
+        this.volumeCtrlBtn=$('.volume-control-btn');
+        this.volumeBar=$('.volume-bar');
+        this.volumeCtrlShowing=false;
+        this.volumeCirclemouseDown=false;
+        this.volumeBarInitalTop=parseInt(this.volumeBar.css("top"));
+        this.volumeCircleWidth=this.volumeCirle.width();
+        
+        this.circleBottom=(100-me.volumeCircleWidth/2);
+        this.circleTop=(-me.volumeCircleWidth/2);
+        
+        this.volumeCtrlBtn.click(function(e){
+        	e.stopPropagation();
+        	if(!me.volumeCtrlShowing){
+        		me.volumeCtrl.show();
+        		me.volumeCtrlShowing=true;
+        	}else{
+        		me.volumeCtrl.hide();
+        		me.volumeCtrlShowing=false;
+        	}
+        });
 
-
+        this.volumeCirle.on("mousedown",function(e){
+        	e.stopPropagation();
+        	me.volumeCirclemouseDown=true;
+        	me.mouseDownPosY=e.pageY;
+        }).on("mouseup",function(e){
+        	e.stopPropagation();
+        	me.volumeCirclemouseDown=false;
+        	me.volumeBarInitalTop=parseInt(me.volumeBar.css("top"));
+        	//改变音量
+        }).on("mouseover",function(e){
+        	$(this).css({
+        		cursor:"pointer"
+        	});
+        });
+        this.volumeCtrl.on("mousemove",function(e){
+        	e.stopPropagation();
+        	if(me.volumeCirclemouseDown){
+        		var mouseY=e.pageY;
+        		var diff=mouseY-me.mouseDownPosY;
+        		console.log(me.volumeBarInitalTop+diff);        		
+        		if(me.volumeBarInitalTop+diff>0&&me.volumeBarInitalTop+diff<=me.circleBottom){ 
+//            		me.volumeCirle.css({
+//            			top:me.volumeCircleInitalTop+diff
+//            		});	
+        			
+        			me.volumeBar.css({
+        				top:me.volumeBarInitalTop+diff,
+        				height:100-me.volumeBarInitalTop-diff
+        			});
+        			
+                	//改变音量	
+            		me.audio[0].volume=Math.abs(parseInt(me.volumeBar.css("top"))-94)*0.01;
+            		if(me.audio[0].volume>=0.93){
+            			me.audio[0].volume=1;
+            		}
+        		}        		
+        	}        	
+        })
+        
+        
+        
         this.lrcArray = [];
 
         this.songArray = [];
@@ -414,6 +476,11 @@ define(['jquery', 'jquery.slimscroll', 'basic'], function($, sl, basicJs) {
                         me.modeListBtn.trigger('click');
                         // 点击窗口其他部分触发播放列表关闭事件
                         me.listWindowCloseBtn.trigger('click');
+                        //触发音量控制mouseup事件
+                        me.volumeCtrlShowing=true;
+                        me.volumeCirle.trigger("mouseup");
+                        //触发点击音量按钮事件
+                        me.volumeCtrlBtn.trigger("click");
                     });
                     me.showing = false;
                 } else {
@@ -652,7 +719,10 @@ define(['jquery', 'jquery.slimscroll', 'basic'], function($, sl, basicJs) {
         },
         init: function() {
             /*初始化DOM结构*/
-            var html = '<div class="player-wrapper">' + '<div class="player-section">' + '<!-- 按钮区域 -->' + '<div class="player-btns-wrapper">' + '<div class="player-btns">' + '<a href="javascript:;" id="prev-btn">' + '<i class="fa fa-step-backward fa-lg"></i>' + '</a>' + '<a href="javascript:;" id="play-btn">' + '<i class="fa fa-play-circle-o fa-2x"></i>' + '</a>' + '<a href="javascript:;" id="next-btn">' + '<i class="fa fa-step-forward fa-lg"></i>' + '</a>' + '</div>' + '</div>' + '<!-- 播放区域:歌曲信息,歌曲进度控制,歌词区域(扩展) -->' + '<div class="player-display">' + '<!-- 歌曲信息 -->' + '<div class="music-info">' + '<!-- 歌曲封面 -->' + '<!-- <img src="" alt="" style="width:100%"> -->' + '<!-- 歌名 -->' + '<span class="music-info-name"></span>&nbsp;' + '<!-- 歌手名 -->' + '<span class="music-info-singer"></span>' + '</div>' + '<!-- 进度控制区域 -->' + '<div class="process-info">' + '<!-- 进度条 -->' + '<div class="process-line"><div class="current-process"></div></div>' + '<!-- 时间 -->' + '<span class="process-time"><span>00:00</span>/<span>00:00</span></span>' + '</div>' + '</div>' + '<!-- 音量控制,播放列表 -->' + '<div class="player-controller-wrapper">' + '<div class="player-controller">' + '<div class="player-btns player-btns-right">' + '<a href="javascript:;" class="btns-right-wrapper">' + '<i class="fa fa-volume-up fa-lg volume-control-btn"></i>' + '</a>' + '<a href="javascript:;" class="mode-list-btn btns-right-wrapper">' + '<i class="fa fa-random fa-lg  mode-list-btn-i"></i>' + '</a>' + '<a href="javascript:;" class="btns-right-wrapper">' + '<i class="fa fa-list-ol fa-lg play-list-btn"></i>' + '</a>' + '</div>' + '<div class="list-group mode-list" style="display:none">' + '<a class="list-group-item mode-dqxh" href="javascript:;"><i class="fa fa-repeat fa-fw"></i>&nbsp; 单曲循环</a>' + '<a class="list-group-item mode-lbxh" href="javascript:;"><i class="fa fa-refresh fa-fw"></i>&nbsp; 列表循环</a>' + '<a class="list-group-item mode-sxbf" href="javascript:;"><i class="fa fa-align-justify fa-fw"></i>&nbsp; 顺序播放</a>' + '<a class="list-group-item mode-sjbf" href="javascript:;"><i class="fa fa-random fa-fw"></i>&nbsp; 随机播放</a>' + '</div>' + '</div>' + '</div>' + '</div>' + '<div class="play-list-section-wrapper" style="display:none">' + '<div class="play-list-section">' + '<div class="play-list-head">' + '<h4>播放列表</h4>' + '<a class="list-remove-all list-icon" href="javascript:;"><i class="fa fa-trash"></i>清除列表</a>' + '<p class="list-current-song list-icon"">时代之梦</p>' + '<a class="list-window-close list-icon" href="javascript:;"><i class="fa fa-close fa-lg"></i></a>' + '</div>' + '<div class="play-list-body">' + '<div class="play-list-wrapper-for-scroll">' + '<div class="play-list-group" style="width:99%">' + '<ul class="play-list">' + '</ul>' + '</div>' + '</div>' + '<div class="play-lrc-section"></div>' + '</div>' + '</div>' + '</div>' + '<div class="audio-wrapper" style="display:none; position:absolute;width:20px;height:20px;">' + '<audio src="" id="audio"></audio>' + '</div>' + '</div>';
+        	
+        	
+        	
+            var html = '<div class="player-wrapper">' + '<div class="player-section">' + '<!-- 按钮区域 -->' + '<div class="player-btns-wrapper">' + '<div class="player-btns">' + '<a href="javascript:;" id="prev-btn">' + '<i class="fa fa-step-backward fa-lg"></i>' + '</a>' + '<a href="javascript:;" id="play-btn">' + '<i class="fa fa-play-circle-o fa-2x"></i>' + '</a>' + '<a href="javascript:;" id="next-btn">' + '<i class="fa fa-step-forward fa-lg"></i>' + '</a>' + '</div>' + '</div>' + '<!-- 播放区域:歌曲信息,歌曲进度控制,歌词区域(扩展) -->' + '<div class="player-display">' + '<!-- 歌曲信息 -->' + '<div class="music-info">' + '<!-- 歌曲封面 -->' + '<!-- <img src="" alt="" style="width:100%"> -->' + '<!-- 歌名 -->' + '<span class="music-info-name"></span>&nbsp;' + '<!-- 歌手名 -->' + '<span class="music-info-singer"></span>' + '</div>' + '<!-- 进度控制区域 -->' + '<div class="process-info">' + '<!-- 进度条 -->' + '<div class="process-line"><div class="current-process"></div></div>' + '<!-- 时间 -->' + '<span class="process-time"><span>00:00</span>/<span>00:00</span></span>' + '</div>' + '</div>' + '<!-- 音量控制,播放列表 -->' + '<div class="player-controller-wrapper">' + '<div class="player-controller">' + '<div class="player-btns player-btns-right">' + '<a href="javascript:;" class="btns-right-wrapper">' + '<i class="fa fa-volume-up fa-lg volume-control-btn"></i>' + '</a>' + '<a href="javascript:;" class="mode-list-btn btns-right-wrapper">' + '<i class="fa fa-random fa-lg  mode-list-btn-i"></i>' + '</a>' + '<a href="javascript:;" class="btns-right-wrapper">' + '<i class="fa fa-list-ol fa-lg play-list-btn"></i>' + '</a>' + '</div>' +'<div class="volume-ctrl">'+'<div class="volume-bar">'+'<div class="volume-circle">'+'</div>'+'</div>'+'</div>'+'<div class="list-group mode-list" style="display:none">' + '<a class="list-group-item mode-dqxh" href="javascript:;"><i class="fa fa-repeat fa-fw"></i>&nbsp; 单曲循环</a>' + '<a class="list-group-item mode-lbxh" href="javascript:;"><i class="fa fa-refresh fa-fw"></i>&nbsp; 列表循环</a>' + '<a class="list-group-item mode-sxbf" href="javascript:;"><i class="fa fa-align-justify fa-fw"></i>&nbsp; 顺序播放</a>' + '<a class="list-group-item mode-sjbf" href="javascript:;"><i class="fa fa-random fa-fw"></i>&nbsp; 随机播放</a>' + '</div>' + '</div>' + '</div>' + '</div>' + '<div class="play-list-section-wrapper" style="display:none">' + '<div class="play-list-section">' + '<div class="play-list-head">' + '<h4>播放列表</h4>' + '<a class="list-remove-all list-icon" href="javascript:;"><i class="fa fa-trash"></i>清除列表</a>' + '<p class="list-current-song list-icon"">时代之梦</p>' + '<a class="list-window-close list-icon" href="javascript:;"><i class="fa fa-close fa-lg"></i></a>' + '</div>' + '<div class="play-list-body">' + '<div class="play-list-wrapper-for-scroll">' + '<div class="play-list-group" style="width:99%">' + '<ul class="play-list">' + '</ul>' + '</div>' + '</div>' + '<div class="play-lrc-section"></div>' + '</div>' + '</div>' + '</div>' + '<div class="audio-wrapper" style="display:none; position:absolute;width:20px;height:20px;">' + '<audio src="" id="audio"></audio>' + '</div>' + '</div>';
             this.body.append(html);
         }
     }
